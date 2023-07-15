@@ -3,7 +3,6 @@
 #Generate target language source code
 
 import ast
-from typing import Any
 
 class PythonToCVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -75,19 +74,30 @@ class PythonToCVisitor(ast.NodeVisitor):
     
     def visit_Call(self, node):
             # For function calls, generate the C equivalent
-            
             func_name = self.visit(node.func)
-            args = ', '.join(self.visit(arg) for arg in node.args)
+            # print(node.args)
+            args = []
+            for arg in node.args:
+                if isinstance(arg, ast.Call):
+                    self.is_inside_function = True
+                    arg = self.visit(arg)
+                    self.is_inside_function = False
+                else:
+                    arg = self.visit(arg)
+                args.append(arg)
+            args = ', '.join(args)
+
+            # args = ', '.join(self.visit(arg) for arg in node.args)
             # print(func_name)
             if func_name == "print":
-                args = ', '.join(self.visit(arg) for arg in node.args)
                 self.c_code += f"Monitor.println({args});\n"
+            
                 return
             if not self.is_inside_function:
                 # print(func_name)
                 self.c_code += f"{func_name}({args});\n" 
             else:
-
+                # print("inside", func_name)
                 return f"{func_name}({args})"
 
     

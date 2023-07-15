@@ -18,8 +18,8 @@ def plutoLoop():
     else:
         print("Unknown")
     vel = Velocity.get(X)
-    if(vel > 10):
-        print("velocity > 10")
+    if(Velocity.get(X) > 10):
+        print("velocity > 10", Velocity.get(X))
 
 def onLoopEnd():
     pass
