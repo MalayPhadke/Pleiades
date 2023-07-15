@@ -75,15 +75,19 @@ class PythonToCVisitor(ast.NodeVisitor):
     
     def visit_Call(self, node):
             # For function calls, generate the C equivalent
+            
             func_name = self.visit(node.func)
             args = ', '.join(self.visit(arg) for arg in node.args)
+            # print(func_name)
             if func_name == "print":
                 args = ', '.join(self.visit(arg) for arg in node.args)
-                self.c_code += f"Monitor.print({args});\n"
+                self.c_code += f"Monitor.println({args});\n"
                 return
             if not self.is_inside_function:
+                # print(func_name)
                 self.c_code += f"{func_name}({args});\n" 
             else:
+
                 return f"{func_name}({args})"
 
     
@@ -128,18 +132,38 @@ class PythonToCVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node):
         return f"{self.visit(node.value)}.{node.attr}"
     
+    def visit_UnaryOp(self, node):
+        op = self.visit(node.op)
+        operand = self.visit(node.operand)
+        return f"{op}{operand}"
+
+    def visit_Not(self, node):
+        return "!"
     def visit_BoolOp(self, node):
         op = self.visit(node.op)
-        return f" {op} ".join(self.visit(value) for value in node.values)
+        values = [self.visit(val) for val in node.values]
+
+        # Check if any of the values are BoolOp nodes (nested boolean operations)
+        nested_boolops = [val for val in values if isinstance(val, str) and ("&&" in val or "||" in val)]
+        if nested_boolops:
+            for nested_boolop in nested_boolops:
+                index = values.index(nested_boolop)
+                values[index] = f"({nested_boolop})"
+        return f" {op} ".join(values)
+    
     def visit_And(self, node):
         return "&&"
     def visit_Or(self, node):
         return "||"
+    
     def visit_Compare(self, node):
+        self.is_inside_function = True
         left = self.visit(node.left)
-        ops = [self.visit(op) for op in node.ops]
-        comparators = [self.visit(cmp) for cmp in node.comparators]
-        return f"{left} {' '.join(f'{op} {cmp}' for op, cmp in zip(ops, comparators))}"
+        operators = [self.visit(op) for op in node.ops]
+        comparators = [self.visit(comp) for comp in node.comparators]
+        comparisons = [f"{left} {op} {comp}" for op, comp in zip(operators, comparators)]
+        self.is_inside_function = False
+        return ' && '.join(comparisons)
 
     def visit_Lt(self, node):
         return "<"
@@ -163,7 +187,6 @@ class PythonToCVisitor(ast.NodeVisitor):
     def visit_If(self, node):
         if self.first_visit:
             self.c_code += f"if ({self.visit(node.test)}) {{\n"
-
             for stmt in node.body:
                 self.visit(stmt)
 
@@ -171,7 +194,7 @@ class PythonToCVisitor(ast.NodeVisitor):
             self.first_visit = False
         else:
             self.c_code += f"else if ({self.visit(node.test)}) {{\n"
-
+            
             for stmt in node.body:
                 self.visit(stmt)
 
@@ -184,3 +207,6 @@ class PythonToCVisitor(ast.NodeVisitor):
                 for stmt in node.orelse:  # Visit statements inside the else block
                     self.visit(stmt)
                 self.c_code += "}\n"    # Add other visit methods for different types of nodes as 
+                self.first_visit = True
+        else:
+            self.first_visit = True
