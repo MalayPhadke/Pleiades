@@ -2,13 +2,17 @@
 #Transform AST to target language AST
 #Generate target language source code
 
-import ast
+#TODO: add functionality to find return type of function
+#List Comprehensions and keywords
+
+import ast, math
 
 class PythonToCVisitor(ast.NodeVisitor):
     def __init__(self):
-        self.c_code = "#include <PlutoPilot.h>\n"
+        self.c_code = "#include <PlutoPilot.h>\n#include <Utils.h>\n"
         self.is_inside_function = False
         self.first_visit = True
+        self.variables = []
 
     def generic_visit(self, node):
         # For unknown node types, just visit its children
@@ -21,6 +25,21 @@ class PythonToCVisitor(ast.NodeVisitor):
         # For the top-level module, visit its body nodes
         for body_node in node.body:
             self.visit(body_node)
+    
+    def visit_Constant(self, node):
+        # For constants, generate C code based on their Python type
+        if isinstance(node.value, int):
+            return str(node.value)
+        elif isinstance(node.value, float):
+            return str(node.value)
+        elif isinstance(node.value, str):
+            return f'"{node.value}"'
+        elif isinstance(node.value, bool):
+            return "true" if node.value else "false"
+        elif node.value is None:
+            return "NULL"
+        else:
+            raise ValueError(f"Unsupported constant type: {type(node.value)}")
 
     def visit_FunctionDef(self, node):
         # For function definitions, generate C code for functions
@@ -90,8 +109,10 @@ class PythonToCVisitor(ast.NodeVisitor):
             # args = ', '.join(self.visit(arg) for arg in node.args)
             # print(func_name)
             if func_name == "print":
-                self.c_code += f"Monitor.println({args});\n"
-            
+                if self.get_variable_type(node.args[0]) == "char*":
+                    self.c_code += f"Monitor.println({args});\n"
+                else:
+                    self.c_code += f'Monitor.println("Value:", {args});\n'    
                 return
             if not self.is_inside_function:
                 # print(func_name)
@@ -100,36 +121,102 @@ class PythonToCVisitor(ast.NodeVisitor):
                 # print("inside", func_name)
                 return f"{func_name}({args})"
 
+    def visit_Subscript_Slice(self, node, var_type, variable):
+        if isinstance(node.slice, ast.Slice):
+            lower, upper = self.visit_Slice(node.slice)
+            size = int((int(upper)-int(lower)))
+            return f"""{var_type} {variable}[{size}];\nfor (int16_t i = {lower}; i < {upper}; i++) {{\n{variable}[i] = {node.value.id}[i];\n }}\n\n"""
+        elif isinstance(node.slice, ast.Tuple):
+            lower, upper = self.visit_Slice(node.slice.elts[0])
+            step = node.slice.elts[1].value
+            size = math.ceil((int(upper)-int(lower))/int(step))
+            return f"""{var_type} {variable}[{size}];\nint16_t {variable}_index = 0;\nfor (int16_t i = {lower}; i < {upper}; i+={step}) {{\n{variable}[{variable}_index] = {node.value.id}[i];\n{variable}_index++;\n }}\n\n"""
+        else:
+            return f"{var_type} {variable} = {node.value.id}[{node.slice.value}];\n"
+            
+    def visit_Slice(self, node):
+        return node.lower.value, node.upper.value
+    
+    def get_variable_type(self, node):
+        if isinstance(node, ast.Constant):
+            return self.get_constant_type(node.value)
+        elif isinstance(node, ast.Name):
+            return "char*" # Default to "int" if type is unknown
+        elif isinstance(node, ast.BinOp):
+            return "int16_t"  # Assume binary operations result in integers
+        # Handle other cases as needed
+        return "int16_t"  # Default to "int" if the type cannot be determined
+
+    def get_constant_type(self, value):
+        if value is True or value is False:
+            return "bool"
+        elif isinstance(value, float):
+            return "float"
+        elif isinstance(value, str):
+            return "char*"
+        elif isinstance(value, int):
+            return "int16_t"
+        return "int16_t"  # Default to "int" if the constant type cannot be determined
     
     def visit_Assign(self, node):
         variable = node.targets[0].id
         self.is_inside_function = True
         val = self.visit(node.value)
-        # print(variable, val)
-        self.c_code += f"{variable} = {val};\n"
-        self.is_inside_function = False
+        var_type = self.get_variable_type(node.value)
+     
+        if isinstance(node.value, ast.List):
+            array_values = ', '.join(self.visit(elt) for elt in node.value.elts)
+            if len(node.value.elts) > 0:
+                array_type = self.get_variable_type(node.value.elts[0])
+                if array_type == "char*":
+                    array_declaration = f"{array_type} {variable} = {{{array_values}}};\n"
+                else:
+                    array_declaration = f"{array_type} {variable}[{len(node.value.elts)}] = {{{array_values}}};\n"
+            else:
+                array_type = "int16_t"
+                array_declaration = f"{array_type} {variable}[11];\n"
+            self.c_code += array_declaration
+            return
 
-    def visit_Constant(self, node):
-        # For constants, generate C code based on their Python type
-        if isinstance(node.value, int):
-            return str(node.value)
-        elif isinstance(node.value, float):
-            return str(node.value)
-        elif isinstance(node.value, str):
-            return f'"{node.value}"'
-        elif isinstance(node.value, bool):
-            return "true" if node.value else "false"
-        elif node.value is None:
-            return "NULL"
+        # Handle tuple assignments
+        if isinstance(node.value, ast.Tuple):
+            array_values = ', '.join(self.visit(elt) for elt in node.value.elts)
+            array_declaration = f"int {variable}[] = {{{array_values}}};"
+            self.c_code += array_declaration
+            return
+        
+        if isinstance(node.value, ast.Subscript):
+            assign = self.visit_Subscript_Slice(node.value, var_type, variable)
+            self.c_code += assign
+            return
+        if val == "True": val = "true"
+        if val == "False": val = "false"
+        
+        if variable in self.variables:
+            self.c_code += f"{variable} = {val};\n"
+            self.is_inside_function = False
         else:
-            raise ValueError(f"Unsupported constant type: {type(node.value)}")
+            self.variables.append(variable)
+            self.c_code += f"{var_type} {variable} = {val};\n"
+            self.is_inside_function = False
+
+    def visit_AugAssign(self, node):
+        vairable = node.target.id
+        self.is_inside_function = True
+        val = self.visit(node.value)
+        op = self.visit(node.op)
+        self.c_code += f"{vairable} {op}= {val};\n"
+        self.is_inside_function = False
+    
+
+
 
     def visit_Import(self, node):
         for module in list(node.names):
-            self.c_code += f"#include<{module.name}.h>\n"
+            self.c_code += f"#include <{module.name}.h>\n"
     
     def visit_ImportFrom(self, node):
-        self.c_code += f"#include<{node.module}.h>\n"
+        self.c_code += f"#include <{node.module}.h>\n"
         # print(node._fields)
 
     def visit_Name(self, node):

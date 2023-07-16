@@ -1,9 +1,8 @@
-from Sensors import Acceleration, Magnetometer, Barometer, Gyroscope
+from Sensor import Acceleration, Magnetometer, Barometer, Gyroscope
 from Estimate import Velocity
 crashed = True
 def plutoInit():
     pass
-
 def onLoopStart():
     pass
 
@@ -18,8 +17,15 @@ def plutoLoop():
     else:
         print("Unknown")
     vel = Velocity.get(X)
+    vel += 10
+    stri = "Hello World"
+    crashed = False
+    print(stri)
+    filled = [1, 2, 3, 4, 5, 6, 7, 8]
+    rcRoll = filled[0:4]
     if(Velocity.get(X) > 10):
         print("velocity > 10", Velocity.get(X))
-
-def onLoopEnd():
+    if crashed:
+        print("crashed", crashed)
+def onLoopFinish():
     pass

@@ -8,8 +8,11 @@ def python_to_c_transpile(python_code):
     return visitor.c_code
 
 if __name__ == "__main__":
-    with open("PlutoPilot.py", "r") as f:
+    with open("main.py", "r") as f:
         python_code = f.read()
 
     c_code = python_to_c_transpile(python_code)
+
+    with open("PlutoPilot.cpp", "w") as f:
+        f.write(c_code)
     print(c_code)
