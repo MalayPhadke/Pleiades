@@ -6,6 +6,8 @@ def plutoInit():
 def onLoopStart():
     pass
 
+def returnFn() -> int:
+    return 1
 def plutoLoop():
    rc_Roll_Stick = 0
    rc = []

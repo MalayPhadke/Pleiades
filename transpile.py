@@ -2,8 +2,7 @@
 #Transform AST to target language AST
 #Generate target language source code
 
-#TODO: add functionality to find return type of function
-#List Comprehensions and keywords
+#TODO: List Comprehensions and keywords
 
 import ast, math
 
@@ -40,13 +39,25 @@ class PythonToCVisitor(ast.NodeVisitor):
             return "NULL"
         else:
             raise ValueError(f"Unsupported constant type: {type(node.value)}")
+        
+    def get_function_return_type(self, node):
+        # Look for a 'Return' node inside the function body
+        # print(node.)
+        for stmt in node.body:
+            print(stmt)
+            if isinstance(stmt, ast.Return):
+                return_type = self.get_variable_type(stmt.value)
+                return return_type
 
+        # If no 'Return' statement found, assume return type is 'None'
+        return "void"
+    
     def visit_FunctionDef(self, node):
         # For function definitions, generate C code for functions
         function_name = node.name
         arguments = ', '.join(arg.arg for arg in node.args.args)
-        return_type = "void"  # Assuming all Python functions return void in C
-        # self.is_inside_function = True
+        return_type = self.get_function_return_type(node) 
+        # Assuming all Python functions return void in C
         # Generate the function signature and visit its body
         self.c_code += f"{return_type} {function_name}({arguments}) {{\n"
         for stmt in node.body:

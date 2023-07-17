@@ -2,31 +2,25 @@
 #include <Utils.h>
 #include <Sensor.h>
 #include <Estimate.h>
-int16_t Error = 0;
-int16_t PlutoXHeading = 0;
+bool crashed = true;
 void plutoInit() {
 }
 
 void onLoopStart() {
-LED.flightStatus(DEACTIVATE);
-Error = (App.getAppHeading() - Angle.get(AG_YAW));
-Monitor.println("Error is: ", Error);
+}
+
+int16_t returnFn() {
+return 1;
 }
 
 void plutoLoop() {
-Monitor.println("PhoneHeading: ", App.getAppHeading());
-PlutoXHeading = (App.getAppHeading() - Error);
-if (PlutoXHeading < 0) {
-PlutoXHeading += 360;
-}
-Monitor.println("Pluto X should turn to ", PlutoXHeading);
-DesiredAngle.set(AG_YAW, PlutoXHeading);
-Monitor.println("Pluto X is at: ", Angle.get(AG_YAW));
-LED.set(RED, ON);
-LED.set(GREEN, ON);
+int16_t rc_Roll_Stick = 0;
+int16_t* rc;
+rc = RcData.get();
+rc_Roll_Stick = rc[0];
+int16_t rc_Throttle_stick = rc[1];
 }
 
 void onLoopFinish() {
-LED.flightStatus(ACTIVATE);
 }
 
