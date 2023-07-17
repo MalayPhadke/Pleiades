@@ -3,6 +3,8 @@
 #Generate target language source code
 
 #TODO: List Comprehensions and keywords
+#datatype default to int_16t, needed int32_t
+#Visit Classes for Interval and Object Declarations
 
 import ast, math
 
@@ -35,6 +37,8 @@ class PythonToCVisitor(ast.NodeVisitor):
             return f'"{node.value}"'
         elif isinstance(node.value, bool):
             return "true" if node.value else "false"
+        elif isinstance(node.value, bytes):
+            return "char"
         elif node.value is None:
             return "NULL"
         else:
@@ -44,7 +48,6 @@ class PythonToCVisitor(ast.NodeVisitor):
         # Look for a 'Return' node inside the function body
         # print(node.)
         for stmt in node.body:
-            print(stmt)
             if isinstance(stmt, ast.Return):
                 return_type = self.get_variable_type(stmt.value)
                 return return_type
@@ -72,6 +75,15 @@ class PythonToCVisitor(ast.NodeVisitor):
             self.c_code += f"return {self.visit(node.value)};\n"
         else:
             self.c_code += "return;\n"
+
+    # def visit_Lambda(self, node):
+    #     arguments = ', '.join(arg.arg for arg in node.args.args)
+    #     return_type = "void" 
+    #     # Assuming all Python functions return void in C
+    #     # Generate the function signature and visit its body
+    #     self.c_code += f"{return_type} MyLambdaFunction({arguments}) {{\n"
+    #     self.visit(node.body)
+    #     self.c_code += "}\n\n"
 
     def visit_BinOp(self, node):
         # For binary operations, generate C equivalent
@@ -171,6 +183,8 @@ class PythonToCVisitor(ast.NodeVisitor):
             return "char*"
         elif isinstance(value, int):
             return "int16_t"
+        elif isinstance(value, bytes):
+            return "char"
         return "int16_t"  # Default to "int" if the constant type cannot be determined
     
     def findRightValue(self, node, var_type, variable, count=0, multiVar=False):
@@ -208,6 +222,9 @@ class PythonToCVisitor(ast.NodeVisitor):
             assign = self.visit_Subscript_Slice(node.value, var_type, variable)
             self.c_code += assign
             return 1
+        # if isinstance(node.value, ast.Lambda):
+        #     print(node.value.body)
+        #     return 1
         
     def visit_Assign(self, node):
         targets = node.targets
@@ -272,10 +289,10 @@ class PythonToCVisitor(ast.NodeVisitor):
 
     def visit_Import(self, node):
         for module in list(node.names):
-            self.c_code += f"#include <{module.name}.h>\n"
+            self.c_code += f"#include <{module.name}.h>\n" if module.name not in self.c_code else ""
     
     def visit_ImportFrom(self, node):
-        self.c_code += f"#include <{node.module}.h>\n"
+        self.c_code += f"#include <{node.module}.h>\n" if node.module not in self.c_code else ""
         # print(node._fields)
 
     def visit_Name(self, node):

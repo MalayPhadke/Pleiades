@@ -1,15 +1,15 @@
 class Angle(object):
-    def get(self):
+    def get():
         pass
 
 class Velocity(object):
-    def get(self):
+    def get():
         pass
 
 class Rate(object):
-    def get(self):
+    def get():
         pass
 
 class Position(object):
-    def get(self):
+    def get():
         pass

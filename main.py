@@ -4,6 +4,8 @@ Error = 0
 PlutoXHeading = 0
 def plutoInit():
     pass
+
+
 def onLoopStart():
     LED.flightStatus(DEACTIVATE)
     Error = App.getAppHeading() - Angle.get(AG_YAW)

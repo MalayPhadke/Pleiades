@@ -9,7 +9,7 @@ def print_ast_tree(node, level=0):
         print_ast_tree(child_node, level + 1)
 
 if __name__ == "__main__":
-    with open("main.py", "r") as f:
+    with open("PlutoPilot.py", "r") as f:
         python_code = f.read()
 
     tree = ast.parse(python_code)

@@ -1,18 +1,20 @@
-from Sensor import Acceleration, Magnetometer, Barometer, Gyroscope
-from Estimate import Velocity
-crashed = True
+from Peripheral import GPIO, ADC, UART
+Pin10 = 5
+OUTPUT = True
 def plutoInit():
-    pass
+    GPIO.init(OUTPUT)
+    ADC.init()
+    UART.init()
 def onLoopStart():
     pass
 
 def returnFn() -> int:
-    return 1
+    return 4
+
 def plutoLoop():
-   rc_Roll_Stick = 0
-   rc = []
-   rc = RcData.get()
-   rc_Roll_Stick = rc[0]
-   rc_Throttle_stick = rc[1]
+    ir = GPIO.read(Pin10)
+    UART.write(Pin10, 20)
+    print("IR: " , ir)
+
 def onLoopFinish():
     pass

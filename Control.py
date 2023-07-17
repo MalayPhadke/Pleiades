@@ -1,40 +1,47 @@
 class DesiredAngle(object):
-    def get(self, angle):
+    def get(angle):
         return angle
     
-    def set(self, angle, value):
+    def set(angle, value):
         pass
 
+class DesiredRate(object):
+    def get(angle):
+        pass
+
+    def set(angle, rate):
+        pass
+    
 class DesiredPosition(object):
-    def get(self, AXIS):
+    def get(AXIS):
         pass
 
-    def set(self, AXIS, position):
+    def set(AXIS, position):
         pass
 
-    def setRelative(self, AXIS, position):
+    def setRelative(AXIS, position):
         pass
 
 class DesiredVelocity(object):
-    def get(self, AXIS):
+    def get(AXIS):
         pass
 
-    def set(self, AXIS, velocity):
+    def set(AXIS, velocity):
         pass
 
 class PIDProfile(object):
-    def get(self, PROFILE, *profile):
+    def get(PROFILE, *profile):
         pass
 
-    def set(self, PROFILE, *profile):
+    def set(PROFILE, *profile):
         pass
 
-    def setDefault(self):
+    def setDefault():
         pass
 
 class Failsafe(object):
-    def enable(self, Failsafe):
+    def enable(Failsafe):
         pass
 
-    def disable(self, Failsafe):
+    def disable(Failsafe):
         pass

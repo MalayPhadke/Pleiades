@@ -1,26 +1,27 @@
 class Acceleration(object):
-    def getNetAcc(self):
+    def getNetAcc():
         pass
 
-    def get(self, AXIS):
+    def get(AXIS):
+        print(AXIS)
         pass
 
 class Gyroscope(object):
-    def getNetAcc(self):
+    def getNetAcc():
         pass
 
-    def get(self, AXIS):
+    def get(AXIS):
         pass
 
 class Magnetometer(object):
 
-    def getNetAcc(self):
+    def getNetAcc():
         pass
 
-    def get(self, AXIS):
+    def get(AXIS):
         pass
 
 class Barometer(object):
 
-    def get(self, STATE):
+    def get(STATE):
         pass
