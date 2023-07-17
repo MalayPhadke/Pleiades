@@ -132,7 +132,11 @@ class PythonToCVisitor(ast.NodeVisitor):
             size = math.ceil((int(upper)-int(lower))/int(step))
             return f"""{var_type} {variable}[{size}];\nint16_t {variable}_index = 0;\nfor (int16_t i = {lower}; i < {upper}; i+={step}) {{\n{variable}[{variable}_index] = {node.value.id}[i];\n{variable}_index++;\n }}\n\n"""
         else:
-            return f"{var_type} {variable} = {node.value.id}[{node.slice.value}];\n"
+            if variable in self.variables:
+                return f"{variable} = {node.value.id}[{node.slice.value}];\n"
+            else:   
+                self.variables.append(variable)
+                return f"{var_type} {variable} = {node.value.id}[{node.slice.value}];\n"
             
     def visit_Slice(self, node):
         return node.lower.value, node.upper.value
@@ -158,46 +162,90 @@ class PythonToCVisitor(ast.NodeVisitor):
             return "int16_t"
         return "int16_t"  # Default to "int" if the constant type cannot be determined
     
-    def visit_Assign(self, node):
-        variable = node.targets[0].id
-        self.is_inside_function = True
-        val = self.visit(node.value)
-        var_type = self.get_variable_type(node.value)
-     
+    def findRightValue(self, node, var_type, variable, count=0, multiVar=False):
+        # if multiVar:
+            # print(', '.join(self.visit(elt) for elt in node.value.elts))
+            # print(variable)
+        if multiVar and isinstance(node.value, ast.Tuple):
+            rightValues = [self.visit(elt) for elt in node.value.elts]
+            if len(rightValues) >= count:
+                if variable in self.variables:
+                    self.c_code += f"{variable} = {rightValues[count]};\n"
+                else:
+                    self.variables.append(variable)
+                    self.c_code += f"{var_type} {variable} = {rightValues[count]};\n"
+                # print(variable, rightValues[count])
+                return 1
+            else: return 2
         if isinstance(node.value, ast.List):
             array_values = ', '.join(self.visit(elt) for elt in node.value.elts)
+            if variable not in self.variables:
+                self.variables.append(variable)
             if len(node.value.elts) > 0:
                 array_type = self.get_variable_type(node.value.elts[0])
                 if array_type == "char*":
                     array_declaration = f"{array_type} {variable} = {{{array_values}}};\n"
                 else:
-                    array_declaration = f"{array_type} {variable}[{len(node.value.elts)}] = {{{array_values}}};\n"
+                    array_declaration = f"{array_type}* {variable} = {{{array_values}}};\n"
             else:
                 array_type = "int16_t"
-                array_declaration = f"{array_type} {variable}[11];\n"
+                array_declaration = f"{array_type}* {variable};\n" 
             self.c_code += array_declaration
-            return
-
-        # Handle tuple assignments
-        if isinstance(node.value, ast.Tuple):
-            array_values = ', '.join(self.visit(elt) for elt in node.value.elts)
-            array_declaration = f"int {variable}[] = {{{array_values}}};"
-            self.c_code += array_declaration
-            return
+            return 1
         
         if isinstance(node.value, ast.Subscript):
             assign = self.visit_Subscript_Slice(node.value, var_type, variable)
             self.c_code += assign
-            return
-        if val == "True": val = "true"
-        if val == "False": val = "false"
+            return 1
         
-        if variable in self.variables:
-            self.c_code += f"{variable} = {val};\n"
+    def visit_Assign(self, node):
+        targets = node.targets
+        # exit = 0
+
+        # Handle multi-variable assignments
+        if isinstance(targets[0], ast.Tuple):
+            count = 0
+            for variable in targets[0].elts:
+                # exit = 0
+                variable = variable.id
+                self.is_inside_function = True
+                val = self.visit(node.value)
+                var_type = self.get_variable_type(node.value)
+                exit = self.findRightValue(node, var_type, variable, count, True)
+                if exit:
+                    count += 1
+                    continue
+                elif exit == 2:
+                    return
+                if val == "True": val = "true"
+                if val == "False": val = "false"
+                if variable in self.variables:
+                    self.c_code += f"{variable} = {val};\n"
+                else:
+                    self.variables.append(variable)
+                    self.c_code += f"{var_type} {variable} = {val};\n"
+            
             self.is_inside_function = False
+
+        # Handle single variable assignment
         else:
-            self.variables.append(variable)
-            self.c_code += f"{var_type} {variable} = {val};\n"
+            variable = targets[0].id
+            self.is_inside_function = True
+            val = self.visit(node.value)
+            var_type = self.get_variable_type(node.value)
+            exit = self.findRightValue(node, var_type, variable)
+            if exit:
+                return
+            
+            if val == "True": val = "true"
+            if val == "False": val = "false"
+            
+            if variable in self.variables:
+                self.c_code += f"{variable} = {val};\n"
+            else:
+                self.variables.append(variable)
+                self.c_code += f"{var_type} {variable} = {val};\n"
+
             self.is_inside_function = False
 
     def visit_AugAssign(self, node):
