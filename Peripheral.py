@@ -3,7 +3,7 @@ class GPIO(object):
         pass
 
     def read(pin_number):
-        pass
+        return pin_number
 
     def write(pin_number, state):
         pass

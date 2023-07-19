@@ -7,14 +7,14 @@ class DesiredAngle(object):
 
 class DesiredRate(object):
     def get(angle):
-        pass
+        return angle
 
     def set(angle, rate):
         pass
     
 class DesiredPosition(object):
     def get(AXIS):
-        pass
+        return AXIS
 
     def set(AXIS, position):
         pass
@@ -24,14 +24,14 @@ class DesiredPosition(object):
 
 class DesiredVelocity(object):
     def get(AXIS):
-        pass
+        return AXIS
 
     def set(AXIS, velocity):
         pass
 
 class PIDProfile(object):
     def get(PROFILE, *profile):
-        pass
+        return PROFILE
 
     def set(PROFILE, *profile):
         pass
