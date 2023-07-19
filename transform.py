@@ -28,7 +28,7 @@ if __name__ == "__main__":
         process = subprocess.run("python -m pylint PlutoPilot.py", shell=True, capture_output=True)
 
         # Check the exit code to see if pylint ran successfully
-        print(process)
+        # print(process)
            
 
     except Exception as e:
