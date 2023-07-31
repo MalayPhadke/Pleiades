@@ -1,0 +1,6 @@
+ACTIVATE = "activate"
+DEACTIVATE = "deactivate"
+RED = "red"
+GREEN = "green"
+ON = "on"
+AG_YAW = "ag_yaw"

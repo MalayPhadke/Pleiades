@@ -302,6 +302,8 @@ class PythonToCVisitor(ast.NodeVisitor):
             self.c_code += f"#include <{module.name}.h>\n" if module.name not in self.c_code else ""
     
     def visit_ImportFrom(self, node):
+        if node.module == "Constants":
+            return
         self.c_code += f"#include <{node.module}.h>\n" if node.module not in self.c_code else ""
         # print(node._fields)
 
