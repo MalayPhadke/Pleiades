@@ -151,7 +151,7 @@ class PythonToCVisitor(ast.NodeVisitor):
             else:
                 return f"{func_name}({args})"
 
-    def visit_Subscript_Slice(self, node, var_type, variable):
+    def visit_Subscript_Slice(self, node, var_type, variable, IfExp=False):
         if isinstance(node.slice, ast.Slice):
             lower, upper = self.visit_Slice(node.slice)
             size = int((int(upper)-int(lower)))
@@ -163,6 +163,7 @@ class PythonToCVisitor(ast.NodeVisitor):
             return f"""{var_type} {variable}[{size}];\nint16_t {variable}_index = 0;\nfor (int16_t i = {lower}; i < {upper}; i+={step}) {{\n{variable}[{variable}_index] = {node.value.id}[i];\n{variable}_index++;\n }}\n\n"""
         else:
             index = node.slice.id if isinstance(node.slice, ast.Name) else node.slice.value
+            if IfExp: return f"{node.value.id}[{index}]"
             if variable in self.variables.keys():
                 return f"{variable} = {node.value.id}[{index}];\n"
             else:   
@@ -233,6 +234,8 @@ class PythonToCVisitor(ast.NodeVisitor):
             assign = self.visit_Subscript_Slice(node.value, var_type, variable)
             self.c_code += assign
             return 1
+        if isinstance(node.value, ast.If):
+            print("IF condition")
         # if isinstance(node.value, ast.Lambda):
         #     print(node.value.body)
         #     return 1
@@ -270,6 +273,9 @@ class PythonToCVisitor(ast.NodeVisitor):
         else:
             variable = targets[0].id
             self.is_inside_function = True
+            if isinstance(node.value, ast.IfExp): 
+                self.visit_IfExp(node.value, variable)
+                return 
             val = self.visit(node.value)
             var_type = self.get_variable_type(node.value)
             exit = self.findRightValue(node, var_type, variable)
@@ -427,3 +433,41 @@ class PythonToCVisitor(ast.NodeVisitor):
                 self.first_visit = True
         else:
             self.first_visit = True
+
+
+    def set_value(self, value, var_type, variable):
+        if isinstance(value, ast.Subscript): 
+           true_value = self.visit_Subscript_Slice(value, var_type, variable, True)
+        else:
+            true_value = self.visit(value)
+        return true_value
+
+# test=Name(id='b', ctx=Load()),
+#         body=Name(id='a', ctx=Load()),
+#         orelse=Name(id='c', ctx=Load())))
+# 'a if b else c', mode='eval'),
+    def visit_IfExp(self, node, variable):
+        # Visit the test condition (the 'b' part of 'a if b else c')
+        test_condition = self.visit(node.test)
+        var_type = self.get_variable_type(node.body)
+        # Visit the 'a' part of the conditional expression
+        true_value = self.set_value(node.body, var_type, variable)
+        # Visit the 'c' part of the conditional expression
+        false_value = self.set_value(node.orelse, var_type, variable)
+
+        if true_value == "True": true_value = "true"
+        if true_value == "False": true_value = "false"
+        if false_value == "True": false_value = "true"
+        if false_value == "False": false_value = "false"
+        
+        if variable in self.variables.keys():    
+            # Generate the C++ code for the conditional expression
+            self.c_code += f"{variable} = ({test_condition}) ? {true_value} : {false_value};\n"
+        else:
+            self.variables[variable] = var_type
+            # Generate the C++ code for the conditional expression
+            self.c_code += f"{var_type} {variable} = ({test_condition}) ? {true_value} : {false_value};\n"
+
+        self.is_inside_function = False
+
+            
