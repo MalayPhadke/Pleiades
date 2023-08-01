@@ -11,9 +11,11 @@ void onLoopStart() {
 LED.flightStatus(DEACTIVATE);
 int16_t Error = (App.getAppHeading() - Angle.get(AG_YAW));
 int16_t* arr;
-bool test = (Error > 10) ? true : false;
-int16_t new = arr[3];
+int16_t x = 10;
+int16_t y = 15;
+int16_t test = (Error > 10) ? x : y;
 Monitor.println("Error is: ", Error);
+LED.set(RED, ON);
 }
 
 void plutoLoop() {

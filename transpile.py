@@ -186,6 +186,7 @@ class PythonToCVisitor(ast.NodeVisitor):
         return "int16_t"  # Default to "int" if the type cannot be determined
 
     def get_constant_type(self, value):
+        # print(int(value))
         if value is True or value is False:
             return "bool"
         elif isinstance(value, float):
@@ -234,8 +235,6 @@ class PythonToCVisitor(ast.NodeVisitor):
             assign = self.visit_Subscript_Slice(node.value, var_type, variable)
             self.c_code += assign
             return 1
-        if isinstance(node.value, ast.If):
-            print("IF condition")
         # if isinstance(node.value, ast.Lambda):
         #     print(node.value.body)
         #     return 1
@@ -449,7 +448,7 @@ class PythonToCVisitor(ast.NodeVisitor):
     def visit_IfExp(self, node, variable):
         # Visit the test condition (the 'b' part of 'a if b else c')
         test_condition = self.visit(node.test)
-        var_type = self.get_variable_type(node.body)
+        var_type = self.get_variable_type(node.body) if node.body.id not in self.variables.keys() else self.variables[node.body.id]
         # Visit the 'a' part of the conditional expression
         true_value = self.set_value(node.body, var_type, variable)
         # Visit the 'c' part of the conditional expression

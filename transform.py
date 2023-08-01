@@ -35,35 +35,35 @@ if __name__ == "__main__":
         warning = r"^(.*?):(\d+):\d+: ([W]\d{4}): (.*)$"
         output = process.stdout.decode("utf-8")
 
-        # for line in output.split("\n"):
-        #     # Check if the line contains an error or warning code
-        #     if re.match(error, line):
-        #         path, line_no,  error_code, error_message = re.match(error, line).groups()
-        #         result["errors"].append({
-        #             "path": path,
-        #             "line": int(line_no),
-        #             "code": error_code,
-        #             "message": error_message.strip()
-        #         })
-        #     elif re.match(warning, line):
-        #         path, line_no, warning_code, warning_message = re.match(warning, line).groups()
-        #         result["warnings"].append({
-        #             "path": path,
-        #             "line": int(line_no),
-        #             "code": warning_code,
-        #             "message": warning_message.strip()
-        #         })
+        for line in output.split("\n"):
+            # Check if the line contains an error or warning code
+            if re.match(error, line):
+                path, line_no,  error_code, error_message = re.match(error, line).groups()
+                result["errors"].append({
+                    "path": path,
+                    "line": int(line_no),
+                    "code": error_code,
+                    "message": error_message.strip()
+                })
+            elif re.match(warning, line):
+                path, line_no, warning_code, warning_message = re.match(warning, line).groups()
+                result["warnings"].append({
+                    "path": path,
+                    "line": int(line_no),
+                    "code": warning_code,
+                    "message": warning_message.strip()
+                })
 
-        # if process.returncode == 0 or process.returncode == 4:
-        result["code"] = 1
+        if process.returncode == 0 or process.returncode == 4:
+            result["code"] = 1
 
-        # print(print_colored(result["code"], "green"))
-        # for error in result["errors"]:
-        #     error_output = f"File {error['path']}, at line {error['line']} \n{error['message']} \n"
-        #     print(print_colored(error_output, "red"))
-        # for warning in result["warnings"]:
-        #     warning_output = f"File {warning['path']}, at line {warning['line']} \n{warning['message']} \n"
-        #     print(print_colored(warning_output, "yellow"))
+        print(print_colored(result["code"], "green"))
+        for error in result["errors"]:
+            error_output = f"File {error['path']}, at line {error['line']} \n{error['message']} \n"
+            print(print_colored(error_output, "red"))
+        for warning in result["warnings"]:
+            warning_output = f"File {warning['path']}, at line {warning['line']} \n{warning['message']} \n"
+            print(print_colored(warning_output, "yellow"))
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -73,4 +73,3 @@ if __name__ == "__main__":
 
         with open(dest, "w") as f:
             f.write(c_code)
-        print(c_code)

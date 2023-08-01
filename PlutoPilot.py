@@ -1,9 +1,10 @@
+#pylint: disable=unused-wildcard-import, wildcard-import
 from Sensor import Acceleration, Magnetometer, Barometer, Gyroscope
 from Estimate import Angle, Velocity
 from Control import DesiredAngle
 from User import App, Command
 from Utils import LED, Graph
-from Constants import *
+from Constants import * 
 
 def plutoInit():
     pass
@@ -13,8 +14,9 @@ def onLoopStart():
     LED.flightStatus(DEACTIVATE)
     Error = App.getAppHeading() - Angle.get(AG_YAW)
     arr = []
-    test = True if (Error > 10) else False
-    new = arr[3]
+    x = 10
+    y = 15
+    test = x if (Error > 10) else y
     print("Error is: ", Error)
     LED.set(RED, ON)
 
